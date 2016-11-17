@@ -109,20 +109,28 @@ function cmd_start() {
   fi
   
   shell_pid=$$
+  OPT_ARGS=""
+  if [ ! -z "$LISTEN_INTERF" ]; then
+    OPT_ARGS="-i $LISTEN_INTERF"
+  fi
+  if [ ! -z "$PID_FILE" ]; then
+    OPT_ARGS="$OPT_ARGS -p $PID_FILE"
+  fi
   if [ -z $NOREDIRECT ]; then
-    nohup $GOTEST_HOME/gotest &> $GOTEST_HOME/daemon.log &
+    nohup $GOTEST_HOME/gotest $OPT_ARGS &> $GOTEST_HOME/daemon.log &
   else
-    nohup $GOTEST_HOME/gotest &
+	echo  "$GOTEST_HOME/gotest $OPT_ARGS &"
+    nohup $GOTEST_HOME/gotest $OPT_ARGS &
   fi
   cmd_status=$?
   
   log_info "Command returned status $cmd_status"
   if [ "$cmd_status" -eq "0" ]; then
     newpid=$!
-    echo $newpid > $PID_FILE
+#    echo $newpid > $PID_FILE
     log_info "Process started with PID $newpid"
     log_info "See log file $GOTEST_HOME/daemon.log for details"
-    echo "Process PID[$shell_pid] forked successfully to PID[$pid]"
+    echo "Process PID[$shell_pid] forked successfully to PID[$newpid]"
   else
     log_critical "error occured while starting process : see file $GOTEST_HOME/daemon.log for details"
   fi
@@ -155,7 +163,7 @@ function cmd_env() {
 # Command-line argument parsing  
 # ================================================================================
 # read the options
-TEMPOPT=`getopt -o c:hp: --long command:,help,pid-file: -n '$0' -- "$@"`
+TEMPOPT=`getopt -o c:hp:i: --long command:,help,pid-file:,interface: -n '$0' -- "$@"`
 eval set -- "$TEMPOPT"
 # extract options and their arguments into variables.
 while true ; do
@@ -167,6 +175,11 @@ while true ; do
         -h|--help) 
           usage; 
           shift;;
+        -i|--interface)
+            case "$2" in
+                "") shift 2 ;;
+                *) LISTEN_INTERF=$2 ; shift 2 ;;
+            esac ;;
         -p|--pid-file)
             case "$2" in
                 "") shift 2 ;;
